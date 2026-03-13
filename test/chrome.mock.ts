@@ -108,6 +108,9 @@ export const chromeMock = {
     onBeforeNavigate: {
       addListener: vi.fn(),
     },
+    onCommitted: {
+      addListener: vi.fn(),
+    },
   },
 
   runtime: {

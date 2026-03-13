@@ -16,7 +16,7 @@ function makeRedirectRule(
       },
     },
     condition: {
-      requestDomains: [domain],
+      urlFilter: `||${domain}`,
       resourceTypes: [
         chrome.declarativeNetRequest.ResourceType.MAIN_FRAME,
       ],
@@ -236,10 +236,17 @@ function isBlockedDomain(
   hostname: string,
   blacklist: string[]
 ): boolean {
+  return findBlockedDomain(hostname, blacklist) !== null;
+}
+
+function findBlockedDomain(
+  hostname: string,
+  blacklist: string[]
+): string | null {
   const bare = hostname.replace(/^www\./, "");
-  return blacklist.some(
+  return blacklist.find(
     (d) => bare === d || bare.endsWith(`.${d}`)
-  );
+  ) ?? null;
 }
 
 chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
@@ -270,6 +277,38 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
     } catch {
       // malformed destination URL, ignore
     }
+  }
+});
+
+// --- Fallback: catch blocked domains that DNR missed ---
+// If DNR redirected, onCommitted fires with the chrome-extension:// URL (skipped).
+// If DNR missed it (e.g. short domains like x.com), onCommitted fires with the
+// original https:// URL and we redirect via tabs.update.
+
+chrome.webNavigation.onCommitted.addListener(async (details) => {
+  if (details.frameId !== 0) return;
+
+  try {
+    const navUrl = new URL(details.url);
+    if (!navUrl.protocol.startsWith("http")) return;
+
+    const data = await getStorageData();
+    const matchedDomain = findBlockedDomain(navUrl.hostname, data.blacklist);
+    if (!matchedDomain) return;
+
+    // Don't redirect if there's an active timer
+    if (data.timers[matchedDomain]) return;
+
+    await chrome.storage.session.set({
+      [`originalUrl:${details.tabId}`]: details.url,
+    });
+
+    const blockedUrl = chrome.runtime.getURL(
+      `blocked.html?domain=${encodeURIComponent(matchedDomain)}`
+    );
+    chrome.tabs.update(details.tabId, { url: blockedUrl });
+  } catch {
+    // ignore invalid URLs
   }
 });
 

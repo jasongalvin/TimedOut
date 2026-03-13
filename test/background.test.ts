@@ -35,7 +35,7 @@ describe("domain management", () => {
 
     expect(getStore().blacklist).toContain("reddit.com");
     expect(getRules().length).toBe(1);
-    expect(getRules()[0].condition.requestDomains).toEqual(["reddit.com"]);
+    expect(getRules()[0].condition.urlFilter).toEqual("||reddit.com");
   });
 
   it("normalizes domains when adding", async () => {
