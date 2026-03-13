@@ -18,11 +18,13 @@ export type Message =
   | { type: "REMOVE_DOMAIN"; domain: string }
   | { type: "START_TIMER"; domain: string; duration: number }
   | { type: "GET_STATE" }
+  | { type: "GET_ORIGINAL_URL" }
   | { type: "UPDATE_SETTINGS"; settings: Settings };
 
 export type MessageResponse =
   | { success: true }
   | { success: true; data: StorageData }
+  | { success: true; originalUrl: string | null }
   | { success: false; error: string };
 
 export const TIMER_PRESETS = [2, 5, 10, 15] as const; // minutes

@@ -6,18 +6,17 @@ import { domainToRuleId, getStorageData, normalizeDomain } from "./utils.js";
 function makeRedirectRule(
   domain: string
 ): chrome.declarativeNetRequest.Rule {
-  const blockedUrl = chrome.runtime.getURL(
-    `blocked.html?domain=${encodeURIComponent(domain)}`
-  );
   return {
     id: domainToRuleId(domain),
     priority: 1,
     action: {
       type: chrome.declarativeNetRequest.RuleActionType.REDIRECT,
-      redirect: { url: blockedUrl },
+      redirect: {
+        extensionPath: `/blocked.html?domain=${encodeURIComponent(domain)}`,
+      },
     },
     condition: {
-      requestDomains: [domain], // automatically matches all subdomains
+      requestDomains: [domain],
       resourceTypes: [
         chrome.declarativeNetRequest.ResourceType.MAIN_FRAME,
       ],
@@ -41,8 +40,15 @@ async function redirectOpenTabs(domain: string): Promise<void> {
   const tabs = await chrome.tabs.query({ url: `*://*.${domain}/*` });
   // Also match the bare domain (no subdomain)
   const bareTabs = await chrome.tabs.query({ url: `*://${domain}/*` });
-  const allIds = new Set([...tabs, ...bareTabs].map((t) => t.id!));
-  for (const tabId of allIds) {
+  const allTabs = new Map<number, chrome.tabs.Tab>();
+  for (const t of [...tabs, ...bareTabs]) {
+    if (t.id != null) allTabs.set(t.id, t);
+  }
+  for (const [tabId, tab] of allTabs) {
+    // Store the original URL so blocked.html can redirect back to it
+    if (tab.url) {
+      await chrome.storage.session.set({ [`originalUrl:${tabId}`]: tab.url });
+    }
     chrome.tabs.update(tabId, { url: blockedUrl });
   }
 }
@@ -135,7 +141,8 @@ async function updateBadge(): Promise<void> {
 // --- Message Handler ---
 
 async function handleMessage(
-  message: Message
+  message: Message,
+  sender: chrome.runtime.MessageSender
 ): Promise<MessageResponse> {
   switch (message.type) {
     case "ADD_DOMAIN":
@@ -153,6 +160,17 @@ async function handleMessage(
     case "GET_STATE": {
       const data = await getStorageData();
       return { success: true, data };
+    }
+
+    case "GET_ORIGINAL_URL": {
+      const tabId = sender.tab?.id;
+      if (tabId == null) return { success: true, originalUrl: null };
+      const key = `originalUrl:${tabId}`;
+      const result = await chrome.storage.session.get(key);
+      const url = result[key] ?? null;
+      // Clean up after reading
+      if (url) await chrome.storage.session.remove(key);
+      return { success: true, originalUrl: url };
     }
 
     case "UPDATE_SETTINGS":
@@ -195,12 +213,72 @@ async function init(): Promise<void> {
   updateBadge();
 }
 
+// --- Original URL Tracking ---
+// DNR redirects lose the original URL. We use webNavigation to capture it
+// before the redirect, storing it in session storage keyed by tab ID.
+// For redirect services (e.g. Gmail's google.com/url?q=...), we extract
+// the destination URL from the query string since onBeforeNavigate won't
+// fire for the final URL — DNR intercepts it at the network level first.
+
+function extractRedirectDestination(navUrl: URL): string | null {
+  // Google redirect: google.com/url?q=<destination>
+  if (
+    (navUrl.hostname === "www.google.com" ||
+      navUrl.hostname === "google.com") &&
+    navUrl.pathname === "/url"
+  ) {
+    return navUrl.searchParams.get("q") || navUrl.searchParams.get("url");
+  }
+  return null;
+}
+
+function isBlockedDomain(
+  hostname: string,
+  blacklist: string[]
+): boolean {
+  const bare = hostname.replace(/^www\./, "");
+  return blacklist.some(
+    (d) => bare === d || bare.endsWith(`.${d}`)
+  );
+}
+
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  // Only track top-level navigations
+  if (details.frameId !== 0) return;
+
+  const data = await getStorageData();
+  const navUrl = new URL(details.url);
+
+  // Direct navigation to a blocked domain
+  if (isBlockedDomain(navUrl.hostname, data.blacklist)) {
+    await chrome.storage.session.set({
+      [`originalUrl:${details.tabId}`]: details.url,
+    });
+    return;
+  }
+
+  // Redirect service (e.g. Gmail link) — extract final destination
+  const destination = extractRedirectDestination(navUrl);
+  if (destination) {
+    try {
+      const destUrl = new URL(destination);
+      if (isBlockedDomain(destUrl.hostname, data.blacklist)) {
+        await chrome.storage.session.set({
+          [`originalUrl:${details.tabId}`]: destination,
+        });
+      }
+    } catch {
+      // malformed destination URL, ignore
+    }
+  }
+});
+
 // --- Event Listeners ---
 
 chrome.alarms.onAlarm.addListener(onAlarmFired);
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  handleMessage(message).then(sendResponse);
+  handleMessage(message, _sender).then(sendResponse);
   return true; // keep message channel open for async response
 });
 

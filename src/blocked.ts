@@ -5,6 +5,9 @@ import { formatTimeRemaining } from "./utils.js";
 const params = new URLSearchParams(window.location.search);
 const domain = params.get("domain") ?? "unknown";
 
+// Original URL is stored in session storage by the background script
+let originalUrl = `https://${domain}`;
+
 // --- DOM Elements ---
 
 const domainEl = document.getElementById("domain") as HTMLElement;
@@ -41,8 +44,8 @@ async function startUnlock(durationSeconds: number): Promise<void> {
   });
 
   if (response.success) {
-    // Redirect to the originally requested site
-    window.location.href = `https://${domain}`;
+    // Redirect to the originally requested URL (preserving path + query)
+    window.location.href = originalUrl;
   } else {
     statusEl.textContent = "Something went wrong. Try again.";
   }
@@ -65,3 +68,10 @@ async function checkExistingTimer(): Promise<void> {
 }
 
 checkExistingTimer();
+
+// Fetch the original URL that was blocked (captured by webNavigation)
+sendMessage({ type: "GET_ORIGINAL_URL" }).then((response) => {
+  if (response.success && "originalUrl" in response && response.originalUrl) {
+    originalUrl = response.originalUrl;
+  }
+});
