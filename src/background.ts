@@ -30,6 +30,21 @@ async function addBlockRule(domain: string): Promise<void> {
     addRules: [makeRedirectRule(domain)],
     removeRuleIds: [domainToRuleId(domain)],
   });
+  await redirectOpenTabs(domain);
+}
+
+/** Redirect any open tabs matching the domain to the blocked page. */
+async function redirectOpenTabs(domain: string): Promise<void> {
+  const blockedUrl = chrome.runtime.getURL(
+    `blocked.html?domain=${encodeURIComponent(domain)}`
+  );
+  const tabs = await chrome.tabs.query({ url: `*://*.${domain}/*` });
+  // Also match the bare domain (no subdomain)
+  const bareTabs = await chrome.tabs.query({ url: `*://${domain}/*` });
+  const allIds = new Set([...tabs, ...bareTabs].map((t) => t.id!));
+  for (const tabId of allIds) {
+    chrome.tabs.update(tabId, { url: blockedUrl });
+  }
 }
 
 async function removeBlockRule(domain: string): Promise<void> {
