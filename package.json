@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "build": "tsx build.ts",
-    "watch": "tsx build.ts --watch"
+    "watch": "tsx build.ts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.287",
     "esbuild": "^0.24.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.0",
-    "tsx": "^4.19.0"
+    "vitest": "^4.1.0"
   }
 }
