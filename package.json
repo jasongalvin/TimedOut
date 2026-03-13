@@ -1,6 +1,7 @@
 {
   "name": "timed-out",
   "version": "1.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "tsx build.ts",
