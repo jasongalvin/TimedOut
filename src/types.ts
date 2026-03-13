@@ -19,7 +19,8 @@ export type Message =
   | { type: "START_TIMER"; domain: string; duration: number }
   | { type: "GET_STATE" }
   | { type: "GET_ORIGINAL_URL" }
-  | { type: "UPDATE_SETTINGS"; settings: Settings };
+  | { type: "UPDATE_SETTINGS"; settings: Settings }
+  | { type: "EXTEND_TIMER"; domain: string; additionalSeconds: number };
 
 export type MessageResponse =
   | { success: true }

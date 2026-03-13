@@ -4,7 +4,7 @@ import { cpSync } from "fs";
 const watch = process.argv.includes("--watch");
 
 const buildOptions: esbuild.BuildOptions = {
-  entryPoints: ["src/background.ts", "src/blocked.ts", "src/popup.ts"],
+  entryPoints: ["src/background.ts", "src/blocked.ts", "src/popup.ts", "src/content.ts"],
   bundle: true,
   outdir: "dist",
   format: "esm",

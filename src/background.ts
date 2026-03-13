@@ -177,6 +177,23 @@ async function handleMessage(
       await chrome.storage.local.set({ settings: message.settings });
       return { success: true };
 
+    case "EXTEND_TIMER": {
+      const data = await getStorageData();
+      const normalized = normalizeDomain(message.domain);
+      const timer = data.timers[normalized];
+      if (!timer) return { success: false, error: "No active timer" };
+
+      timer.expiresAt += message.additionalSeconds * 1000;
+      data.timers[normalized] = timer;
+      await chrome.storage.local.set({ timers: data.timers });
+
+      // Recreate alarm with new expiration
+      await chrome.alarms.clear(normalized);
+      await chrome.alarms.create(normalized, { when: timer.expiresAt });
+
+      return { success: true };
+    }
+
     default:
       return { success: false, error: "Unknown message type" };
   }
