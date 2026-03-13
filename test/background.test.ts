@@ -15,7 +15,8 @@ async function loadBackground() {
 }
 
 // Helper: invoke the last-registered message handler
-async function sendMessage(msg: any): Promise<any> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function sendMessage(msg: unknown): Promise<any> {
   const handler =
     chromeMock.runtime.onMessage.addListener.mock.calls.at(-1)?.[0];
   if (!handler) throw new Error("No message handler registered");

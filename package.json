@@ -7,13 +7,19 @@
     "build": "tsx build.ts",
     "watch": "tsx build.ts --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.0.287",
+    "@types/node": "^25.5.0",
     "esbuild": "^0.24.0",
+    "eslint": "^10.0.3",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.57.0",
     "vitest": "^4.1.0"
   }
 }

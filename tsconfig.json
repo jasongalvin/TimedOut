@@ -8,7 +8,7 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["chrome"]
+    "types": ["chrome", "node"]
   },
-  "include": ["src/**/*.ts", "build.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "build.ts", "gen-icons.ts"]
 }

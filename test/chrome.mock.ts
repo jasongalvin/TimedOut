@@ -108,5 +108,6 @@ export const chromeMock = {
 
 /** Install the mock as the global `chrome` object. */
 export function installChromeMock() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (globalThis as any).chrome = chromeMock;
 }
