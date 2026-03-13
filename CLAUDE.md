@@ -55,6 +55,14 @@ ESM only throughout. `package.json` with `"type": "module"`, `tsconfig.json` wit
 
 esbuild with a simple build script. Separate entry points for background, blocked, popup. No framework — vanilla TS + direct DOM manipulation.
 
+## Build commands
+```bash
+pnpm install           # install dependencies
+pnpm run build         # one-off build → dist/
+pnpm run watch         # rebuild on file changes
+```
+Load `dist/` as an unpacked extension in `chrome://extensions` (enable Developer mode).
+
 ## Implementation order
 1. Scaffold: manifest.json, tsconfig, esbuild build script, confirm extension loads in chrome://extensions
 2. Storage layer: CRUD helpers for blacklist, timers, settings

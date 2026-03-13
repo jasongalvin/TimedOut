@@ -1,0 +1,15 @@
+{
+  "name": "timed-out",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsx build.ts",
+    "watch": "tsx build.ts --watch"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0"
+  }
+}
