@@ -31,8 +31,10 @@ export function domainToRuleId(domain: string): number {
  * Read all storage data, filling in defaults for missing keys.
  */
 export async function getStorageData(): Promise<StorageData> {
-  const data = await chrome.storage.local.get(STORAGE_DEFAULTS);
-  return data as StorageData;
+  const data = await chrome.storage.local.get(
+    STORAGE_DEFAULTS as unknown as Record<string, unknown>,
+  );
+  return data as unknown as StorageData;
 }
 
 /**

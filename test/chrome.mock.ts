@@ -10,12 +10,14 @@ type AlarmMap = Record<string, chrome.alarms.Alarm>;
 type Rule = chrome.declarativeNetRequest.Rule;
 
 let store: StorageData = {};
+let sessionStore: StorageData = {};
 let alarms: AlarmMap = {};
 let rules: Rule[] = [];
 let alarmListener: ((alarm: chrome.alarms.Alarm) => void) | null = null;
 
 export function resetMocks() {
   store = {};
+  sessionStore = {};
   alarms = {};
   rules = [];
   alarmListener = null;
@@ -46,6 +48,17 @@ export const chromeMock = {
       }),
       set: vi.fn(async (items: StorageData) => {
         Object.assign(store, items);
+      }),
+    },
+    session: {
+      get: vi.fn(async (key: string) => {
+        return { [key]: sessionStore[key] ?? null };
+      }),
+      set: vi.fn(async (items: StorageData) => {
+        Object.assign(sessionStore, items);
+      }),
+      remove: vi.fn(async (key: string) => {
+        delete sessionStore[key];
       }),
     },
   },
@@ -89,6 +102,12 @@ export const chromeMock = {
   action: {
     setBadgeText: vi.fn(async () => {}),
     setBadgeBackgroundColor: vi.fn(async () => {}),
+  },
+
+  webNavigation: {
+    onBeforeNavigate: {
+      addListener: vi.fn(),
+    },
   },
 
   runtime: {

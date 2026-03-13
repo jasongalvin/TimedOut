@@ -167,7 +167,7 @@ async function handleMessage(
       if (tabId == null) return { success: true, originalUrl: null };
       const key = `originalUrl:${tabId}`;
       const result = await chrome.storage.session.get(key);
-      const url = result[key] ?? null;
+      const url = (result[key] as string) ?? null;
       // Clean up after reading
       if (url) await chrome.storage.session.remove(key);
       return { success: true, originalUrl: url };
